@@ -21,6 +21,12 @@
         <h2 class="text-center mb-3">Jugadores</h2>
         <div id="players-list" class="row justify-content-center"></div>
       </section>
+
+      <!-- SECCIÓN EVENTOS -->
+      <section class="mt-5">
+        <h2 class="text-center mb-3">Eventos</h2>
+        <div id="events-list" class="row justify-content-center"></div>
+      </section>
     </div>
 
     <!-- MODAL DETALLE EQUIPO -->
@@ -39,6 +45,23 @@
         </div>
       </div>
     </div>
+
+      <!-- MODAL DETALLE JUGADOR -->
+      <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+              <h5 class="modal-title" id="playerModalLabel">Detalles del jugador</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div id="player-details" class="text-center">
+                <p class="text-muted">Cargando información...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
     <footer class="text-center mt-5 mb-3 text-muted">
       <p>Hecho por Nutri y Guicho</p>
