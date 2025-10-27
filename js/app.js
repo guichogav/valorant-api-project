@@ -13,7 +13,7 @@ const pageSize = 8;
 const options = {
   method: 'GET',
   headers: {
-    'x-rapidapi-key': '1ed744d008mshc9012beae8006fdp11e870jsn1d22999f808a', // Key utilizada: Nutri --- Payed plan
+    'x-rapidapi-key': 'e3fe9d9493mshf0b96ce72099930p120205jsn4948a5d7f89c', // Key utilizada: Nutri --- Payed plan 1ed744d008mshc9012beae8006fdp11e870jsn1d22999f808a
     'x-rapidapi-host': 'valorant-esports1.p.rapidapi.com'
   }
 };
@@ -396,10 +396,171 @@ function renderEventPagination(pagination) {
   `;
 }
 
+// --------------------------
+// FUNCIÓN DE BÚSQUEDA GLOBAL
+// --------------------------
+let allTeams = [];
+let allPlayers = [];
+let allEvents = [];
+
+// Cargar *todas* las páginas de equipos, jugadores y eventos para búsqueda global
+async function preloadData() {
+  try {
+    allTeams = await fetchAllPages(teamsUrl);
+    allPlayers = await fetchAllPages(playersUrl);
+    allEvents = await fetchAllPages(eventsUrl + '&status=all&region=all');
+    console.log(`✅ Datos precargados:
+      Equipos: ${allTeams.length}
+      Jugadores: ${allPlayers.length}
+      Eventos: ${allEvents.length}`);
+  } catch (error) {
+    console.error("Error al precargar datos para búsqueda:", error);
+  }
+}
+
+// Función auxiliar genérica que recorre todas las páginas de la API
+async function fetchAllPages(baseUrl) {
+  let page = 1;
+  const size = 100; // puedes ajustar si la API limita
+  let allData = [];
+  let hasMore = true;
+
+  while (hasMore) {
+    const url = `${baseUrl}?page=${page}&size=${size}`;
+    const res = await fetch(url, options);
+    const json = await res.json();
+
+    if (json?.status === "OK" && Array.isArray(json.data) && json.data.length > 0) {
+      allData.push(...json.data);
+      if (json.pagination?.hasNextPage) {
+        page++;
+      } else {
+        hasMore = false;
+      }
+    } else {
+      hasMore = false;
+    }
+  }
+
+  return allData;
+}
+
+// Función que filtra los resultados
+function handleSearch(query) {
+  query = query.toLowerCase().trim();
+
+  // Si no hay texto, recarga la vista normal
+  if (query === "") {
+    loadTeams();
+    loadPlayers();
+    loadEvents();
+    return;
+  }
+
+  // Filtrar equipos
+  const filteredTeams = allTeams.filter(t => 
+    t.name.toLowerCase().includes(query) || 
+    (t.country && t.country.toLowerCase().includes(query))
+  );
+
+  // Filtrar jugadores
+  const filteredPlayers = allPlayers.filter(p => 
+    p.name.toLowerCase().includes(query) ||
+    (p.teamTag && p.teamTag.toLowerCase().includes(query)) ||
+    (p.country && p.country.toLowerCase().includes(query))
+  );
+
+  // Filtrar eventos
+  const filteredEvents = allEvents.filter(e => 
+    e.name.toLowerCase().includes(query) ||
+    (e.country && e.country.toLowerCase().includes(query)) ||
+    (e.status && e.status.toLowerCase().includes(query))
+  );
+
+  renderSearchResults(filteredTeams, filteredPlayers, filteredEvents);
+}
+
+// Mostrar resultados filtrados
+function renderSearchResults(teams, players, events) {
+  const teamsContainer = document.getElementById('teams-list');
+  const playersContainer = document.getElementById('players-list');
+  const eventsContainer = document.getElementById('events-list');
+
+  // Limpiar paginaciones
+  ['team-pagination', 'player-pagination', 'event-pagination'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+
+  // Render Equipos
+  teamsContainer.innerHTML = teams.length
+    ? teams.map(t => `
+        <div class="col-md-3 mb-4">
+          <div class="card h-100 shadow-sm border-0">
+            <img src="${t.img || 'https://via.placeholder.com/200x200'}" class="card-img-top p-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">${t.name}</h5>
+              <p class="text-muted">${t.country || 'Sin país'}</p>
+              <button class="btn btn-danger btn-sm mt-2" onclick="showTeamInfo('${t.id}')">Ver equipo</button>
+            </div>
+          </div>
+        </div>
+      `).join('')
+    : '<p class="text-center text-muted">No se encontraron equipos.</p>';
+
+  // Render Jugadores
+  playersContainer.innerHTML = players.length
+    ? players.map(p => `
+        <div class="col-md-2 mb-4">
+          <div class="card h-100 text-center shadow-sm border-0 p-3">
+            <div class="card-body">
+              <h5 class="card-title">${p.name}</h5>
+              <p class="card-text">
+                <strong>Tag:</strong> ${p.teamTag || 'N/A'}<br>
+                <strong>País:</strong> ${p.country?.toUpperCase() || 'N/A'}
+              </p>
+              <button class="btn btn-dark btn-sm" onclick="showPlayerInfo('${p.id}')">Ver jugador</button>
+            </div>
+          </div>
+        </div>
+      `).join('')
+    : '<p class="text-center text-muted">No se encontraron jugadores.</p>';
+
+  // Render Eventos
+  eventsContainer.innerHTML = events.length
+    ? events.map(e => `
+        <div class="col-md-3 mb-4">
+          <div class="card h-100 shadow-sm border-0">
+            <img src="${e.img || 'https://via.placeholder.com/200x200'}" class="card-img-top p-3">
+            <div class="card-body text-center">
+              <h5 class="card-title">${e.name}</h5>
+              <p class="text-muted mb-1">
+                <strong>Estado:</strong> ${e.status || 'N/A'}<br>
+                <strong>Premio:</strong> ${e.prizepool || 'No especificado'}<br>
+                <strong>Fechas:</strong> ${e.dates || 'Sin datos'}<br>
+                <strong>País:</strong> ${e.country?.toUpperCase() || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+      `).join('')
+    : '<p class="text-center text-muted">No se encontraron eventos.</p>';
+}
+
+
 // Inicializar
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  const loader = document.getElementById("loading-message");
+  if (loader) loader.innerText = "Precargando datos, por favor espera...";
+  
+  await preloadData();
+
+  if (loader) loader.innerText = "";
+
   loadTeams();
   loadPlayers();
   loadEvents();
 });
+
+
 
