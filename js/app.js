@@ -1,4 +1,4 @@
-// API: Equipos y Jugadores
+//  API: Equipos y Jugadores
 const teamsUrl = 'https://valorant-esports1.p.rapidapi.com/v1/teams';
 const playersUrl = 'https://valorant-esports1.p.rapidapi.com/v1/players';
 const teamInfoUrl = id => `https://valorant-esports1.p.rapidapi.com/v1/teams/${id}`;
