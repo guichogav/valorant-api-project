@@ -310,20 +310,29 @@ function renderPlayerPagination(pagination) {
   `;
 }
 
-// Cargar Eventos
-const eventsPerPage = 10; 
+// Número de eventos por página
+const eventsPerPage = 10;
 
+// Cargar Eventos
 async function loadEvents(page = 1) {
   const eventsContainer = document.getElementById('events-list');
-  const url = `${eventsUrl}&page=${page}&size=${eventsPerPage}`;
+
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(eventsUrl, options);
     const data = await response.json();
     console.log("Eventos:", data);
 
     if (data?.status === "OK" && Array.isArray(data.data)) {
+      // Limitar con slice según la página actual
+      const startIndex = (page - 1) * eventsPerPage;
+      const endIndex = startIndex + eventsPerPage;
+      const pagedData = data.data.slice(startIndex, endIndex);
+
+      // Limpiar contenedor
       eventsContainer.innerHTML = "";
-      data.data.forEach(event => {
+
+      // Crear las tarjetas de los eventos visibles
+      pagedData.forEach(event => {
         const card = document.createElement('div');
         card.className = 'col-md-3 mb-4';
         card.innerHTML = `
@@ -344,16 +353,15 @@ async function loadEvents(page = 1) {
         eventsContainer.appendChild(card);
       });
 
-      let paginationObj = data.pagination;
-      if (!paginationObj) {
-        const totalItems = Number(data.size) || 0; 
-        const totalPages = totalItems > 0 ? Math.ceil(totalItems / eventsPerPage) : 1;
-        paginationObj = {
-          page: page,
-          totalPages: totalPages,
-          hasNextPage: page < totalPages
-        };
-      }
+      // Calcular la paginación manualmente
+      const totalItems = data.data.length;
+      const totalPages = Math.ceil(totalItems / eventsPerPage);
+      const paginationObj = {
+        page: page,
+        totalPages: totalPages,
+        hasNextPage: page < totalPages
+      };
+
       renderEventPagination(paginationObj);
     } else {
       eventsContainer.innerHTML = '<p class="text-center">No se encontraron eventos.</p>';
@@ -370,7 +378,7 @@ async function loadEvents(page = 1) {
 function renderEventPagination(pagination) {
   const page = Number(pagination?.page) || 1;
   const totalPages = Number(pagination?.totalPages) || 1;
-  const hasNext = (typeof pagination?.hasNextPage === 'boolean') ? pagination.hasNextPage : (page < totalPages);
+  const hasNext = page < totalPages;
 
   const section = document.querySelector('#events-list').parentElement;
   let btnContainer = document.getElementById('event-pagination');
@@ -396,50 +404,46 @@ function renderEventPagination(pagination) {
   `;
 }
 
-// --------------------------
-// FUNCIÓN DE BÚSQUEDA GLOBAL
-// --------------------------
+
+// Buscador global
 let allTeams = [];
 let allPlayers = [];
 let allEvents = [];
 
-// --------------------------
-// CARGA CONTROLADA + CACHÉ LOCAL
-// --------------------------
-
-// Descarga todas las páginas de una API, pero en lotes para evitar sobrecarga
+// Obtener todas las páginas de una categoría (maneja correctamente URLs que ya tienen query params)
 async function fetchAllPages(baseUrl) {
-  const size = 100; // Tamaño por página (ajusta según la API)
-  const firstUrl = `${baseUrl}?page=1&size=${size}`;
+  const size = 100;
+  const sep = baseUrl.includes('?') ? '&' : '?';
+  const firstUrl = `${baseUrl}${baseUrl.includes('page=') ? '' : `${sep}page=1&size=${size}`}`;
+
+  console.log('fetchAllPages -> firstUrl:', firstUrl);
+
   const firstRes = await fetch(firstUrl, options);
   const firstJson = await firstRes.json();
 
   if (firstJson?.status !== "OK" || !Array.isArray(firstJson.data)) {
-    console.warn("⚠️ No se pudo obtener datos de la primera página:", baseUrl);
+    console.warn("No se pudo obtener datos de la primera página:", baseUrl, firstJson);
     return [];
   }
 
-  const totalPages = firstJson.pagination?.totalPages || 1;
+  const totalPages = Number(firstJson.pagination?.totalPages) || 1;
   let allData = [...firstJson.data];
 
   if (totalPages === 1) return allData;
 
   console.log(`📄 Cargando ${totalPages} páginas de: ${baseUrl}`);
 
-  // Crear lista de todas las páginas
   const pageUrls = [];
   for (let p = 2; p <= totalPages; p++) {
-    pageUrls.push(`${baseUrl}?page=${p}&size=${size}`);
+    pageUrls.push(`${baseUrl}${sep}page=${p}&size=${size}`);
   }
 
-  // Procesar en lotes para evitar saturación
-  const batchSize = 5; // Cuántas páginas se cargan a la vez
-  const delay = 500; // Pausa entre lotes (en milisegundos)
+  const batchSize = 5;
+  const delay = 500;
 
   for (let i = 0; i < pageUrls.length; i += batchSize) {
     const batch = pageUrls.slice(i, i + batchSize);
 
-    // Esperar las respuestas del lote actual
     const responses = await Promise.allSettled(
       batch.map(url => fetch(url, options).then(r => r.json()))
     );
@@ -447,10 +451,11 @@ async function fetchAllPages(baseUrl) {
     for (const res of responses) {
       if (res.status === "fulfilled" && res.value?.status === "OK" && Array.isArray(res.value.data)) {
         allData.push(...res.value.data);
+      } else {
+        console.warn("fetchAllPages: petición fallida o formato inesperado", res);
       }
     }
 
-    // Esperar un poco antes del siguiente lote
     if (i + batchSize < pageUrls.length) {
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -462,7 +467,7 @@ async function fetchAllPages(baseUrl) {
 // Precarga con almacenamiento local (cache TTL de 12h)
 async function preloadData() {
   const cacheKey = "valorantDataCache_v2";
-  const cacheTTL = 12 * 60 * 60 * 1000; // 12 horas
+  const cacheTTL = 12 * 60 * 60 * 1000;
 
   const loader = document.getElementById("loading-message");
   if (loader) loader.innerText = "Precargando datos, por favor espera...";
@@ -473,27 +478,36 @@ async function preloadData() {
 
     if (cached && now - cached.timestamp < cacheTTL) {
       console.log("Cargando datos desde caché local...");
-      allTeams = cached.teams;
-      allPlayers = cached.players;
-      allEvents = cached.events;
+      allTeams = cached.teams || [];
+      allPlayers = cached.players || [];
+
+      // Rehacemos fetch de eventos siempre (para no depender del cache que estaba vacío)
+      const eventsRes = await fetch(eventsUrl, options);
+      const eventsJson = await eventsRes.json();
+      allEvents = (eventsJson?.status === "OK" && Array.isArray(eventsJson.data)) ? eventsJson.data : [];
+
       if (loader) loader.innerText = "";
+      console.log(`CARGADO DE CACHE -> teams:${allTeams.length} players:${allPlayers.length} events:${allEvents.length}`);
       return;
     }
 
     console.log("Descargando datos desde la API...");
 
-    // Cargar todas las categorías en paralelo, pero cada una de forma controlada
-    const [teams, players, events] = await Promise.all([
+    const [teams, players] = await Promise.all([
       fetchAllPages(teamsUrl),
       fetchAllPages(playersUrl),
-      fetchAllPages(eventsUrl + "&status=all&region=all"),
     ]);
 
-    allTeams = teams;
-    allPlayers = players;
-    allEvents = events;
+    // Obtener eventos sin paginación
+    const eventsRes = await fetch(eventsUrl, options);
+    const eventsJson = await eventsRes.json();
+    const events = (eventsJson?.status === "OK" && Array.isArray(eventsJson.data)) ? eventsJson.data : [];
 
-    // Guardar en caché local
+    allTeams = teams || [];
+    allPlayers = players || [];
+    allEvents = events || [];
+
+    // Guardar todo en cache
     localStorage.setItem(
       cacheKey,
       JSON.stringify({
@@ -516,11 +530,11 @@ async function preloadData() {
   }
 }
 
-// Función que filtra los resultados
+// Función que filtra los resultados 
 function handleSearch(query) {
-  query = query.toLowerCase().trim();
+  query = (query || '').toLowerCase().trim();
 
-  // Si no hay texto, recarga la vista normal
+  // Si no hay query, recargamos vistas normales
   if (query === "") {
     loadTeams();
     loadPlayers();
@@ -529,26 +543,69 @@ function handleSearch(query) {
   }
 
   // Filtrar equipos
-  const filteredTeams = allTeams.filter(t => 
-    t.name.toLowerCase().includes(query) || 
-    (t.country && t.country.toLowerCase().includes(query))
-  );
+  const filteredTeams = allTeams.filter(t => {
+    const name = (t.name || '').toLowerCase();
+    const country = (t.country || '').toLowerCase();
+    return name.includes(query) || country.includes(query);
+  });
 
   // Filtrar jugadores
-  const filteredPlayers = allPlayers.filter(p => 
-    p.name.toLowerCase().includes(query) ||
-    (p.teamTag && p.teamTag.toLowerCase().includes(query)) ||
-    (p.country && p.country.toLowerCase().includes(query))
-  );
+  const filteredPlayers = allPlayers.filter(p => {
+    const name = (p.name || '').toLowerCase();
+    const teamTag = (p.teamTag || '').toLowerCase();
+    const country = (p.country || '').toLowerCase();
+    return name.includes(query) || teamTag.includes(query) || country.includes(query);
+  });
 
   // Filtrar eventos
-  const filteredEvents = allEvents.filter(e => 
-    e.name.toLowerCase().includes(query) ||
-    (e.country && e.country.toLowerCase().includes(query)) ||
-    (e.status && e.status.toLowerCase().includes(query))
-  );
+  const filteredEvents = allEvents.filter(e => {
+    const name = (e.name || '').toString().toLowerCase();
+    const country = (e.country || '').toString().toLowerCase();
+    const status = (e.status || '').toString().toLowerCase();
+    const region = (e.region || '').toString().toLowerCase();
+    const prize = (e.prizepool || '').toString().toLowerCase();
+    const dates = (e.dates || '').toString().toLowerCase();
+
+    return (
+      name.includes(query) ||
+      country.includes(query) ||
+      status.includes(query) ||
+      region.includes(query) ||
+      prize.includes(query) ||
+      dates.includes(query)
+    );
+  });
 
   renderSearchResults(filteredTeams, filteredPlayers, filteredEvents);
+}
+
+// Conexión del input de búsqueda (si existe) con debounce simple
+function initSearchInput() {
+  const input = document.getElementById('global-search') || document.getElementById('search-input') || document.querySelector('input[type="search"]');
+  if (!input) {
+    console.warn('initSearchInput: no se encontró input de búsqueda (ids probados: #global-search, #search-input, input[type="search"])');
+    return;
+  }
+
+  // Evitar añadir múltiples listeners
+  if (input._hasSearchListener) return;
+  input._hasSearchListener = true;
+
+  let timeout = null;
+  input.addEventListener('input', (e) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      handleSearch(e.target.value);
+    }, 250); 
+  });
+
+  // También permite buscar con Enter si es formulario
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch(e.target.value);
+    }
+  });
 }
 
 // Mostrar resultados filtrados
