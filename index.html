@@ -33,8 +33,8 @@
         <!-- DERECHA: LOGIN / LOGOUT -->
         <div id="auth-section" class="d-flex align-items-center gap-2">
           <button id="loginBtn" class="btn btn-dark btn-sm">Iniciar sesión</button>
-          <button id="logoutBtn" class="btn btn-secondary btn-sm d-none">Cerrar sesión</button>
           <div id="userInfo" class="d-flex align-items-center gap-2"></div>
+          <button id="logoutBtn" class="btn btn-secondary btn-sm d-none">Cerrar sesión</button>
         </div>
 
       </div>
@@ -125,6 +125,40 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
+    // Verificar estado de autenticación y controlar acceso a la página
+    window.isAuthenticated = false;
+    window.enableAppForUser = function() {
+      window.isAuthenticated = true;
+      if (typeof loadTeams === 'function') {
+        // Limpiar los placeholdres
+        const teamsList = document.getElementById('teams-list');
+        const playersList = document.getElementById('players-list');
+        const eventsList = document.getElementById('events-list');
+        if (teamsList) teamsList.innerHTML = '';
+        if (playersList) playersList.innerHTML = '';
+        if (eventsList) eventsList.innerHTML = '';
+        // Carga los datos desde app.js
+        try { preloadData().then(() => { loadTeams(); loadPlayers(); loadEvents(); }); } catch(e) { /* ignore if functions not ready */ }
+      }
+    };
+
+    window.disableAppForUser = function() {
+      window.isAuthenticated = false;
+      const placeholder = '<p class="text-center text-muted">Por favor, inicia sesión para acceder al contenido.</p>';
+      const teamsList = document.getElementById('teams-list');
+      const playersList = document.getElementById('players-list');
+      const eventsList = document.getElementById('events-list');
+      if (teamsList) teamsList.innerHTML = placeholder;
+      if (playersList) playersList.innerHTML = placeholder;
+      if (eventsList) eventsList.innerHTML = placeholder;
+
+      // Limpiar contenido de jugadores, equipos y eventos
+      ['team-pagination', 'player-pagination', 'event-pagination'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+      });
+    };
+
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userInfo = document.getElementById('userInfo');
@@ -133,6 +167,8 @@
       try {
         const result = await signInWithPopup(auth, provider);
         mostrarUsuario(result.user);
+        // Habilitar después de iniciar sesión
+        if (typeof window.enableAppForUser === 'function') window.enableAppForUser();
       } catch (error) {
         console.error("Error al iniciar sesión:", error);
       }
@@ -143,14 +179,19 @@
       loginBtn.classList.remove('d-none');
       logoutBtn.classList.add('d-none');
       userInfo.innerHTML = '';
+      // desabilitar app al cerrar sesión
+      if (typeof window.disableAppForUser === 'function') window.disableAppForUser();
     });
 
     onAuthStateChanged(auth, (user) => {
-      if (user) mostrarUsuario(user);
-      else {
+      if (user) {
+        mostrarUsuario(user);
+        if (typeof window.enableAppForUser === 'function') window.enableAppForUser();
+      } else {
         loginBtn.classList.remove('d-none');
         logoutBtn.classList.add('d-none');
         userInfo.innerHTML = '';
+        if (typeof window.disableAppForUser === 'function') window.disableAppForUser();
       }
     });
 

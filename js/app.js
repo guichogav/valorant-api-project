@@ -18,8 +18,24 @@ const options = {
   }
 };
 
+// Bloquear las acciones de la pagina si no está autenticado
+function requireAuth() {
+  try {
+    if (!window.isAuthenticated) {
+      alert('Debes iniciar sesión con Google para acceder a esta funcionalidad.');
+      return false;
+    }
+  } catch (e) {
+    // Por si la pagina esta bloqueada o algo
+    alert('Debe iniciar sesión para continuar.');
+    return false;
+  }
+  return true;
+}
+
 // Cargar Equipos
 async function loadTeams(page = 1) {
+  if (!requireAuth()) return;
   const teamsContainer = document.getElementById('teams-list');
   const url = `${teamsUrl}?page=${page}&size=${pageSize}`;
   try {
@@ -63,6 +79,7 @@ async function loadTeams(page = 1) {
 
 // Mostrar Detalle del Equipo
 async function showTeamInfo(teamId) {
+  if (!requireAuth()) return;
   const teamDetails = document.getElementById('team-details');
   const modal = new bootstrap.Modal(document.getElementById('teamModal'));
   teamDetails.innerHTML = '<p class="text-muted">Cargando información...</p>';
@@ -148,6 +165,7 @@ async function showTeamInfo(teamId) {
 
 // Cargar Jugadores
 async function loadPlayers(page = 1) {
+  if (!requireAuth()) return;
   const playersContainer = document.getElementById('players-list');
   const url = `${playersUrl}?page=${page}&size=${pageSize}`;
   try {
@@ -190,6 +208,7 @@ async function loadPlayers(page = 1) {
 
 // Mostrar Detalle del Jugador
 async function showPlayerInfo(playerId) {
+  if (!requireAuth()) return;
   const playerDetails = document.getElementById('player-details');
   const modal = new bootstrap.Modal(document.getElementById('playerModal'));
   playerDetails.innerHTML = '<p class="text-muted">Cargando información...</p>';
@@ -315,6 +334,7 @@ const eventsPerPage = 10;
 
 // Cargar Eventos
 async function loadEvents(page = 1) {
+  if (!requireAuth()) return;
   const eventsContainer = document.getElementById('events-list');
 
   try {
@@ -466,6 +486,7 @@ async function fetchAllPages(baseUrl) {
 
 // Precarga con almacenamiento local (cache TTL de 12h)
 async function preloadData() {
+  if (!requireAuth()) return; // prevent data preloading for unauthenticated users
   const cacheKey = "valorantDataCache_v2";
   const cacheTTL = 12 * 60 * 60 * 1000;
 
@@ -533,6 +554,8 @@ async function preloadData() {
 // Función que filtra los resultados 
 function handleSearch(query) {
   query = (query || '').toLowerCase().trim();
+
+  if (!requireAuth()) return; // prevent searching if not authenticated
 
   // Si no hay query, recargamos vistas normales
   if (query === "") {
@@ -679,10 +702,21 @@ function renderSearchResults(teams, players, events) {
 // Inicializar
 document.addEventListener("DOMContentLoaded", async () => {
   const loader = document.getElementById("loading-message");
-  if (loader) loader.innerText = "Precargando datos, por favor espera...";
-  
-  await preloadData();
+  // Mostrar contenido solo si está autenticado
+  const placeholderMsg = 'Por favor, inicia sesión con para acceder al contenido.';
+  if (!window.isAuthenticated) {
+    if (loader) loader.innerText = '';
+    const teamsList = document.getElementById('teams-list');
+    const playersList = document.getElementById('players-list');
+    const eventsList = document.getElementById('events-list');
+    if (teamsList) teamsList.innerHTML = `<p class="text-center text-muted">${placeholderMsg}</p>`;
+    if (playersList) playersList.innerHTML = `<p class="text-center text-muted">${placeholderMsg}</p>`;
+    if (eventsList) eventsList.innerHTML = `<p class="text-center text-muted">${placeholderMsg}</p>`;
+    return;
+  }
 
+  if (loader) loader.innerText = "Precargando datos, por favor espera...";
+  await preloadData();
   if (loader) loader.innerText = "";
 
   loadTeams();
