@@ -1,0 +1,11 @@
+header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#auth-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

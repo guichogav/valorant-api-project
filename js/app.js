@@ -13,7 +13,7 @@ const pageSize = 8;
 const options = {
   method: 'GET',
   headers: {
-    'x-rapidapi-key': 'e3fe9d9493mshf0b96ce72099930p120205jsn4948a5d7f89c', // Key utilizada: Nutri --- Payed plan 1ed744d008mshc9012beae8006fdp11e870jsn1d22999f808a
+    'x-rapidapi-key': '1ed744d008mshc9012beae8006fdp11e870jsn1d22999f808a', // Key utilizada: Nutri --- Payed plan 1ed744d008mshc9012beae8006fdp11e870jsn1d22999f808a
     'x-rapidapi-host': 'valorant-esports1.p.rapidapi.com'
   }
 };
@@ -403,46 +403,117 @@ let allTeams = [];
 let allPlayers = [];
 let allEvents = [];
 
-// Cargar *todas* las páginas de equipos, jugadores y eventos para búsqueda global
-async function preloadData() {
-  try {
-    allTeams = await fetchAllPages(teamsUrl);
-    allPlayers = await fetchAllPages(playersUrl);
-    allEvents = await fetchAllPages(eventsUrl + '&status=all&region=all');
-    console.log(`✅ Datos precargados:
-      Equipos: ${allTeams.length}
-      Jugadores: ${allPlayers.length}
-      Eventos: ${allEvents.length}`);
-  } catch (error) {
-    console.error("Error al precargar datos para búsqueda:", error);
-  }
-}
+// --------------------------
+// CARGA CONTROLADA + CACHÉ LOCAL
+// --------------------------
 
-// Función auxiliar genérica que recorre todas las páginas de la API
+// Descarga todas las páginas de una API, pero en lotes para evitar sobrecarga
 async function fetchAllPages(baseUrl) {
-  let page = 1;
-  const size = 100; // puedes ajustar si la API limita
-  let allData = [];
-  let hasMore = true;
+  const size = 100; // Tamaño por página (ajusta según la API)
+  const firstUrl = `${baseUrl}?page=1&size=${size}`;
+  const firstRes = await fetch(firstUrl, options);
+  const firstJson = await firstRes.json();
 
-  while (hasMore) {
-    const url = `${baseUrl}?page=${page}&size=${size}`;
-    const res = await fetch(url, options);
-    const json = await res.json();
+  if (firstJson?.status !== "OK" || !Array.isArray(firstJson.data)) {
+    console.warn("⚠️ No se pudo obtener datos de la primera página:", baseUrl);
+    return [];
+  }
 
-    if (json?.status === "OK" && Array.isArray(json.data) && json.data.length > 0) {
-      allData.push(...json.data);
-      if (json.pagination?.hasNextPage) {
-        page++;
-      } else {
-        hasMore = false;
+  const totalPages = firstJson.pagination?.totalPages || 1;
+  let allData = [...firstJson.data];
+
+  if (totalPages === 1) return allData;
+
+  console.log(`📄 Cargando ${totalPages} páginas de: ${baseUrl}`);
+
+  // Crear lista de todas las páginas
+  const pageUrls = [];
+  for (let p = 2; p <= totalPages; p++) {
+    pageUrls.push(`${baseUrl}?page=${p}&size=${size}`);
+  }
+
+  // Procesar en lotes para evitar saturación
+  const batchSize = 5; // Cuántas páginas se cargan a la vez
+  const delay = 500; // Pausa entre lotes (en milisegundos)
+
+  for (let i = 0; i < pageUrls.length; i += batchSize) {
+    const batch = pageUrls.slice(i, i + batchSize);
+
+    // Esperar las respuestas del lote actual
+    const responses = await Promise.allSettled(
+      batch.map(url => fetch(url, options).then(r => r.json()))
+    );
+
+    for (const res of responses) {
+      if (res.status === "fulfilled" && res.value?.status === "OK" && Array.isArray(res.value.data)) {
+        allData.push(...res.value.data);
       }
-    } else {
-      hasMore = false;
+    }
+
+    // Esperar un poco antes del siguiente lote
+    if (i + batchSize < pageUrls.length) {
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 
   return allData;
+}
+
+// Precarga con almacenamiento local (cache TTL de 12h)
+async function preloadData() {
+  const cacheKey = "valorantDataCache_v2";
+  const cacheTTL = 12 * 60 * 60 * 1000; // 12 horas
+
+  const loader = document.getElementById("loading-message");
+  if (loader) loader.innerText = "Precargando datos, por favor espera...";
+
+  try {
+    const cached = JSON.parse(localStorage.getItem(cacheKey));
+    const now = Date.now();
+
+    if (cached && now - cached.timestamp < cacheTTL) {
+      console.log("Cargando datos desde caché local...");
+      allTeams = cached.teams;
+      allPlayers = cached.players;
+      allEvents = cached.events;
+      if (loader) loader.innerText = "";
+      return;
+    }
+
+    console.log("Descargando datos desde la API...");
+
+    // Cargar todas las categorías en paralelo, pero cada una de forma controlada
+    const [teams, players, events] = await Promise.all([
+      fetchAllPages(teamsUrl),
+      fetchAllPages(playersUrl),
+      fetchAllPages(eventsUrl + "&status=all&region=all"),
+    ]);
+
+    allTeams = teams;
+    allPlayers = players;
+    allEvents = events;
+
+    // Guardar en caché local
+    localStorage.setItem(
+      cacheKey,
+      JSON.stringify({
+        timestamp: now,
+        teams: allTeams,
+        players: allPlayers,
+        events: allEvents,
+      })
+    );
+
+    console.log(`Precarga completada:
+      Equipos: ${allTeams.length}
+      Jugadores: ${allPlayers.length}
+      Eventos: ${allEvents.length}`);
+
+  } catch (error) {
+    console.error("Error al precargar datos:", error);
+  } finally {
+    if (loader) loader.innerText = "";
+  }
 }
 
 // Función que filtra los resultados
@@ -561,6 +632,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   loadPlayers();
   loadEvents();
 });
-
-
-

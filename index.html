@@ -1,161 +1,172 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Login con Google - Valorant Esports</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
-  </head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Valorant Esports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
 
-  <body class="text-center p-5">
-    <h1>Inicia sesión con Google</h1>
-    <button id="loginBtn" class="btn btn-danger">Login con Google</button>
-    <button id="logoutBtn" class="btn btn-secondary d-none">Cerrar sesión</button>
-    <div id="userInfo" class="mt-3"></div>
+<body class="bg-light">
 
-    <script type="module">
-      // Importar SDKs de Firebase
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-      import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+  <!-- HEADER FIJO -->
+  <header class="bg-danger text-white shadow-sm position-fixed top-0 start-0 w-100" style="z-index: 1030;">
+    <div class="container d-flex align-items-center justify-content-between py-2">
 
-      // Configuración de Firebase
-      const firebaseConfig = {
-        apiKey: "AIzaSyCUq_JQQ_Zjt1NSrQJr1uk74k8RMyPTkGI",
-        authDomain: "fir-aplicacionesinternet.firebaseapp.com",
-        projectId: "fir-aplicacionesinternet",
-        storageBucket: "fir-aplicacionesinternet.firebasestorage.app",
-        messagingSenderId: "625637735607",
-        appId: "1:625637735607:web:db8b88ac17aadd51372132",
-        measurementId: "G-C4Z01EPW9X"
-      };
+  <!-- IZQUIERDA: LOGO + TEXTO -->
+        <div class="d-flex align-items-center gap-2">
+          <img src="/img/valo.png" alt="Valorant Logo" height="50">
+          <span class="fw-bold fs-5">Valorant eSports</span>
+        </div>
 
-      // Inicializar Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const provider = new GoogleAuthProvider();
+        <!-- CENTRO: BARRA DE BÚSQUEDA -->
+        <div class="flex-grow-1 mx-3">
+          <input 
+            type="text" 
+            id="search-bar" 
+            class="form-control form-control-lg" 
+            placeholder="Equipo, Jugador, Evento..." 
+            oninput="handleSearch(this.value)">
+        </div>
 
-      // Referencias a elementos
-      const loginBtn = document.getElementById('loginBtn');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const userInfo = document.getElementById('userInfo');
+        <!-- DERECHA: LOGIN / LOGOUT -->
+        <div id="auth-section" class="d-flex align-items-center gap-2">
+          <button id="loginBtn" class="btn btn-dark btn-sm">Iniciar sesión</button>
+          <button id="logoutBtn" class="btn btn-secondary btn-sm d-none">Cerrar sesión</button>
+          <div id="userInfo" class="d-flex align-items-center gap-2"></div>
+        </div>
 
-      // Login con Google
-      loginBtn.addEventListener('click', async () => {
-        try {
-          const result = await signInWithPopup(auth, provider);
-          const user = result.user;
-          userInfo.innerHTML = `
-            <p>Bienvenido, ${user.displayName}</p>
-            <img src="${user.photoURL}" width="80" class="rounded-circle">
-          `;
-          loginBtn.classList.add('d-none');
-          logoutBtn.classList.remove('d-none');
-        } catch (error) {
-          console.error("Error al iniciar sesión:", error);
-        }
-      });
+      </div>
+    </header>
 
-      // Logout
-      logoutBtn.addEventListener('click', async () => {
-        await signOut(auth);
-        userInfo.innerHTML = '';
+  <!-- ESPACIO PARA EL HEADER FIJO -->
+  <div style="height: 90px;"></div>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <div class="container mt-4">
+
+    <p id="loading-message" class="text-center text-muted mt-3"></p>
+
+    <!-- SECCIÓN EQUIPOS -->
+    <section class="mb-5">
+      <h2 class="text-center mb-3 text-danger">Equipos</h2>
+      <div id="teams-list" class="row justify-content-center"></div>
+    </section>
+
+    <!-- SECCIÓN JUGADORES -->
+    <section class="mb-5">
+      <h2 class="text-center mb-3 text-dark">Jugadores</h2>
+      <div id="players-list" class="row justify-content-center"></div>
+    </section>
+
+    <!-- SECCIÓN EVENTOS -->
+    <section class="mt-5">
+      <h2 class="text-center mb-3 text-danger">Eventos</h2>
+      <div id="events-list" class="row justify-content-center"></div>
+    </section>
+  </div>
+
+  <!-- MODAL DETALLE EQUIPO -->
+  <div class="modal fade" id="teamModal" tabindex="-1" aria-labelledby="teamModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title" id="teamModalLabel">Detalles del equipo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="team-details" class="text-center">
+            <p class="text-muted">Cargando información...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE JUGADOR -->
+  <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title" id="playerModalLabel">Detalles del jugador</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="player-details" class="text-center">
+            <p class="text-muted">Cargando información...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="text-center mt-5 mb-3 text-muted">
+    <p>Hecho por Nutri y Guicho</p>
+  </footer>
+
+  <!-- SCRIPT FIREBASE AUTH -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUq_JQQ_Zjt1NSrQJr1uk74k8RMyPTkGI",
+      authDomain: "fir-aplicacionesinternet.firebaseapp.com",
+      projectId: "fir-aplicacionesinternet",
+      storageBucket: "fir-aplicacionesinternet.firebasestorage.app",
+      messagingSenderId: "625637735607",
+      appId: "1:625637735607:web:db8b88ac17aadd51372132",
+      measurementId: "G-C4Z01EPW9X"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('userInfo');
+
+    loginBtn.addEventListener('click', async () => {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        mostrarUsuario(result.user);
+      } catch (error) {
+        console.error("Error al iniciar sesión:", error);
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+      loginBtn.classList.remove('d-none');
+      logoutBtn.classList.add('d-none');
+      userInfo.innerHTML = '';
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) mostrarUsuario(user);
+      else {
         loginBtn.classList.remove('d-none');
         logoutBtn.classList.add('d-none');
-      });
+        userInfo.innerHTML = '';
+      }
+    });
 
-      // Detectar si el usuario ya está autenticado
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          userInfo.innerHTML = `
-            <p>Bienvenido, ${user.displayName}</p>
-            <img src="${user.photoURL}" width="80" class="rounded-circle">
-          `;
-          loginBtn.classList.add('d-none');
-          logoutBtn.classList.remove('d-none');
-        } else {
-          userInfo.innerHTML = '';
-          loginBtn.classList.remove('d-none');
-          logoutBtn.classList.add('d-none');
-        }
-      });
-    </script>
-  </body>
+    function mostrarUsuario(user) {
+      loginBtn.classList.add('d-none');
+      logoutBtn.classList.remove('d-none');
+      userInfo.innerHTML = `
+        <span class="d-none d-md-inline">${user.displayName}</span>
+        <img src="${user.photoURL}" width="35" class="rounded-circle">
+      `;
+    }
+  </script>
+
+  <!-- SCRIPTS GENERALES -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/app.js"></script>
+
+</body>
 </html>
-
-  <body class="bg-light">
-
-    <div class="container mt-4">
-      <h1 class="text-center mb-4 text-danger">Valorant Esports</h1>
-      <!-- BARRA DE BÚSQUEDA -->
-      <div class="d-flex justify-content-end mb-4">
-        <input 
-          type="text" 
-          id="search-bar" 
-          class="form-control w-25 shadow-sm" 
-          placeholder="Equipo, Jugador, Evento..."
-          oninput="handleSearch(this.value)">
-      </div>
-
-      <p id="loading-message" class="text-center text-muted mt-3"></p>
-
-      <!-- SECCIÓN EQUIPOS -->
-      <section class="mb-5">
-        <h2 class="text-center mb-3">Equipos</h2>
-        <div id="teams-list" class="row justify-content-center"></div>
-      </section>
-
-      <!-- SECCIÓN JUGADORES -->
-      <section>
-        <h2 class="text-center mb-3">Jugadores</h2>
-        <div id="players-list" class="row justify-content-center"></div>
-      </section>
-
-      <!-- SECCIÓN EVENTOS -->
-      <section class="mt-5">
-        <h2 class="text-center mb-3">Eventos</h2>
-        <div id="events-list" class="row justify-content-center"></div>
-      </section>
-    </div>
-
-    <!-- MODAL DETALLE EQUIPO -->
-    <div class="modal fade" id="teamModal" tabindex="-1" aria-labelledby="teamModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title" id="teamModalLabel">Detalles del equipo</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div id="team-details" class="text-center">
-              <p class="text-muted">Cargando información...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-      <!-- MODAL DETALLE JUGADOR -->
-      <div class="modal fade" id="playerModal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-          <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-dark text-white">
-              <h5 class="modal-title" id="playerModalLabel">Detalles del jugador</h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <div id="player-details" class="text-center">
-                <p class="text-muted">Cargando información...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    <footer class="text-center mt-5 mb-3 text-muted">
-      <p>Hecho por Nutri y Guicho</p>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/app.js"></script>
-  </body>
