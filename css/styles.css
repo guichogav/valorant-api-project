@@ -9,3 +9,22 @@ header .container {
   align-items: center;
   gap: 8px;
 }
+
+#logoutBtn {
+  border: white 2px solid;
+  background: transparent;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+}
+
+#logoutBtn:hover {
+  color: white;
+  transform: scale(1.1);
+  transition: 0.2s;
+}
