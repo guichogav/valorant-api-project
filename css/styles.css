@@ -11,20 +11,20 @@ header .container {
 }
 
 #logoutBtn {
-  border: white 2px solid;
   background: transparent;
   color: white;
   padding: 4px 8px;
-  border-radius: 4px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-left: 10px;
+  border: none;
 }
 
 #logoutBtn:hover {
   color: white;
   transform: scale(1.1);
-  transition: 0.2s;
+  transition: 0.1s;
+  border: white 1px solid;
 }

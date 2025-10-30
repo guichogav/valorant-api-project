@@ -5,7 +5,6 @@ const teamInfoUrl = id => `https://valorant-esports1.p.rapidapi.com/v1/teams/${i
 const playerInfoUrl = id => `https://valorant-esports1.p.rapidapi.com/v1/players/${id}`;
 const eventsUrl = 'https://valorant-esports1.p.rapidapi.com/v1/events?status=all&region=all';
 
-
 let currentTeamPage = 1;
 let currentPlayerPage = 1;
 const pageSize = 8; 
@@ -168,6 +167,7 @@ async function loadPlayers(page = 1) {
   if (!requireAuth()) return;
   const playersContainer = document.getElementById('players-list');
   const url = `${playersUrl}?page=${page}&size=${pageSize}`;
+
   try {
     const response = await fetch(url, options);
     const data = await response.json();
@@ -175,12 +175,25 @@ async function loadPlayers(page = 1) {
 
     if (data?.status === "OK" && Array.isArray(data.data)) {
       playersContainer.innerHTML = "";
-      data.data.forEach(player => {
+
+      data.data.forEach(async player => {
+
+        // Placeholder inicial mientras llega la foto real
+        const playerImgPlaceholder = "https://via.placeholder.com/100?text=VLR";
+
+        // Crear contenedor de la tarjeta
         const card = document.createElement('div');
         card.className = 'col-md-2 mb-4';
+
+        // Estructura inicial de la tarjeta
         card.innerHTML = `
           <div class="card h-100 text-center shadow-sm border-0 p-3">
-            <div class="card-body">
+            <img id="player-img-${player.id}"
+                 src="${playerImgPlaceholder}"
+                 alt="${player.name}"
+                 class="rounded-circle mb-2 align-self-center shadow-sm"
+                 width="80" height="80">
+            <div class="card-body pt-0">
               <h5 class="card-title">${player.name}</h5>
               <p class="card-text">
                 <strong>Tag:</strong> ${player.teamTag || 'N/A'}<br>
@@ -192,14 +205,28 @@ async function loadPlayers(page = 1) {
             </div>
           </div>
         `;
+
         playersContainer.appendChild(card);
+
+        try {
+          const res = await fetch(playerInfoUrl(player.id), options);
+          const playerDetail = await res.json();
+          const realImg = playerDetail.data?.info?.img;
+
+          if (realImg) {
+            document.getElementById(`player-img-${player.id}`).src = realImg;
+          }
+        } catch (err) {
+          console.warn(`No se pudo cargar imagen del jugador ${player.name}`, err);
+        }
       });
 
-      // Mostrar botón "Ver más"
       renderPlayerPagination(data.pagination);
+
     } else {
       playersContainer.innerHTML = '<p class="text-center">No se encontraron jugadores.</p>';
     }
+
   } catch (error) {
     console.error("Error al cargar jugadores:", error);
     playersContainer.innerHTML = '<p class="text-center text-danger">Error al obtener los jugadores.</p>';
@@ -410,20 +437,19 @@ function renderEventPagination(pagination) {
   }
 
   btnContainer.innerHTML = `
-    <button class="btn btn-outline-primary me-2" 
+    <button class="btn btn-outline-danger me-2" 
             ${page <= 1 ? 'disabled' : ''}
             onclick="loadEvents(${page - 1})">
       ← Anterior
     </button>
     <span>Página ${page} de ${totalPages}</span>
-    <button class="btn btn-outline-primary ms-2" 
+    <button class="btn btn-outline-danger ms-2" 
             ${!hasNext ? 'disabled' : ''}
             onclick="loadEvents(${page + 1})">
       Siguiente →
     </button>
   `;
 }
-
 
 // Buscador global
 let allTeams = [];
@@ -451,7 +477,7 @@ async function fetchAllPages(baseUrl) {
 
   if (totalPages === 1) return allData;
 
-  console.log(`📄 Cargando ${totalPages} páginas de: ${baseUrl}`);
+  console.log(`Cargando ${totalPages} páginas de: ${baseUrl}`);
 
   const pageUrls = [];
   for (let p = 2; p <= totalPages; p++) {
