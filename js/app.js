@@ -33,6 +33,58 @@ function requireAuth() {
   return true;
 }
 
+// Mostrar/ocultar secciones y manejar botones de navegación
+function showSection(name) {
+  const sections = {
+    teams: document.getElementById('section-teams'),
+    players: document.getElementById('section-players'),
+    events: document.getElementById('section-events')
+  };
+
+  const buttons = {
+    teams: document.getElementById('btn-equipos'),
+    players: document.getElementById('btn-jugadores'),
+    events: document.getElementById('btn-eventos')
+  };
+
+  // Esconder todas las secciones
+  Object.values(sections).forEach(s => {
+    if (!s) return;
+    s.classList.add('d-none');
+  });
+
+  // resetaear botones
+  if (buttons.teams) { buttons.teams.className = 'btn btn-outline-danger'; buttons.teams.setAttribute('aria-pressed','false'); }
+  if (buttons.players) { buttons.players.className = 'btn btn-outline-danger'; buttons.players.setAttribute('aria-pressed','false'); }
+  if (buttons.events) { buttons.events.className = 'btn btn-outline-danger'; buttons.events.setAttribute('aria-pressed','false'); }
+
+  // Mostrar selección
+  if (sections[name]) sections[name].classList.remove('d-none');
+  // Botones activados
+  if (buttons[name]) {
+    if (name === 'teams') buttons[name].className = 'btn btn-danger';
+    if (name === 'players') buttons[name].className = 'btn btn-danger';
+    if (name === 'events') buttons[name].className = 'btn btn-danger';
+    buttons[name].setAttribute('aria-pressed','true');
+  }
+
+  // Cargar los datos de la sección
+  if (window.isAuthenticated) {
+    if (name === 'teams') loadTeams();
+    if (name === 'players') loadPlayers();
+    if (name === 'events') loadEvents();
+  }
+}
+
+function initNavButtons() {
+  const bTeams = document.getElementById('btn-equipos');
+  const bPlayers = document.getElementById('btn-jugadores');
+  const bEvents = document.getElementById('btn-eventos');
+  if (bTeams) bTeams.addEventListener('click', () => showSection('teams'));
+  if (bPlayers) bPlayers.addEventListener('click', () => showSection('players'));
+  if (bEvents) bEvents.addEventListener('click', () => showSection('events'));
+}
+
 // Cargar Equipos
 async function loadTeams(page = 1) {
   if (!requireAuth()) return;
@@ -702,6 +754,9 @@ function renderSearchResults(teams, players, events) {
 // Inicializar
 document.addEventListener("DOMContentLoaded", async () => {
   const loader = document.getElementById("loading-message");
+  // Inicializar botones de navegación y mostrar la sección de equipos por defecto
+  try { initNavButtons(); } catch (e) { /* ignore if DOM not ready */ }
+  try { showSection('teams'); } catch (e) { /* ignore */ }
   // Mostrar contenido solo si está autenticado
   const placeholderMsg = 'Por favor, inicia sesión con para acceder al contenido.';
   if (!window.isAuthenticated) {

@@ -27,7 +27,7 @@
             type="text" 
             id="search-bar" 
             class="form-control form-control-lg" 
-            placeholder="Equipo, Jugador, Evento..." 
+            placeholder="Search..." 
             oninput="handleSearch(this.value)">
         </div>
 
@@ -39,12 +39,31 @@
             <i class="bi bi-box-arrow-right fs-5"></i>
           </button>
         </div>
-
       </div>
     </header>
 
   <!-- ESPACIO PARA EL HEADER FIJO -->
   <div style="height: 90px;"></div>
+
+  <!--Botones de navegación   -->
+  <section aria-label="Navegación principal" class="controls-section" style="padding:16px; align-items: center;">
+   <div role="toolbar" aria-label="Acciones principales" style="display:flex;gap:8px;flex-wrap:wrap;">
+    
+    <button type="button" id="btn-equipos" class="btn btn-danger" aria-pressed="true">
+      Equipos
+    </button>
+
+     <button type="button" id="btn-jugadores" class="btn btn-danger" aria-pressed="false">
+      Jugadores
+    </button>
+
+    <button type="button" id="btn-eventos" class="btn btn-danger" aria-pressed="false">
+      Eventos
+    </button>
+   
+   </div>
+  </section>
+
 
   <!-- CONTENIDO PRINCIPAL -->
   <div class="container mt-4">
@@ -52,19 +71,19 @@
     <p id="loading-message" class="text-center text-muted mt-3"></p>
 
     <!-- SECCIÓN EQUIPOS -->
-    <section class="mb-5">
+    <section id="section-teams" class="mb-5">
       <h2 class="text-center mb-3 text-danger">Equipos</h2>
       <div id="teams-list" class="row justify-content-center"></div>
     </section>
 
     <!-- SECCIÓN JUGADORES -->
-    <section class="mb-5">
+    <section id="section-players" class="mb-5 d-none">
       <h2 class="text-center mb-3 text-dark">Jugadores</h2>
       <div id="players-list" class="row justify-content-center"></div>
     </section>
 
     <!-- SECCIÓN EVENTOS -->
-    <section class="mt-5">
+    <section id="section-events" class="mt-5 d-none">
       <h2 class="text-center mb-3 text-danger">Eventos</h2>
       <div id="events-list" class="row justify-content-center"></div>
     </section>
