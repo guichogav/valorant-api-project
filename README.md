@@ -2,43 +2,104 @@
 
 Una aplicación web moderna que proporciona información sobre la escena profesional de Valorant, incluyendo equipos, jugadores y eventos. 
 
+---
+
 ## ✨ Características
 
 ### 🎯 Sección de Equipos
 - Visualiza equipos profesionales de Valorant en un diseño de cuadrícula responsive
 - Cada tarjeta de equipo muestra:
   - Logo/imagen del equipo
-  - Nombre del equipo
+  - Nombre del equipo 
   - País de origen
-- Haz clic en cualquier equipo para ver información detallada en una ventana modal
-- Resultados paginados (8 equipos por página)
+- Vista detallada en modal con:
+  - Información completa del equipo
+  - Lista de jugadores actuales
+  - Staff técnico
+  - Eventos recientes
+- Paginación dinámica (8 equipos por página)
 
 ### 👥 Sección de Jugadores
 - Explora los jugadores profesionales de Valorant
-- Las tarjetas de jugador muestran:
+- Tarjetas de jugador con:
+  - Foto de perfil
   - Nombre del jugador
-  - Etiqueta del equipo
+  - Equipo actual
   - País que representa
-- Información detallada del jugador disponible mediante modal
-- Visualización paginada (8 jugadores por página)
+- Modal detallado incluyendo:
+  - Estadísticas del jugador
+  - Redes sociales
+  - Historial de equipos
+  - Enlaces a perfiles externos
+- Paginación eficiente (8 jugadores por página)
 
 ### 🏆 Sección de Eventos
 - Últimos torneos y eventos de Valorant
-- Las tarjetas de eventos incluyen:
+- Tarjetas informativas con:
   - Imagen del evento
-  - Nombre del evento
-  - Estado (en curso/próximo/completado)
-  - Premio
-  - Fechas
-  - País anfitrión
+  - Nombre del torneo
+  - Estado actual (en curso/próximo/completado)
+  - Premio total
+  - Fechas programadas
+  - País sede
+- Paginación personalizada (10 eventos por página)
 
 ### 🔍 Búsqueda Global
-- Funcionalidad de búsqueda en tiempo real
-- Búsqueda en todas las secciones:
-  - Equipos (por nombre o país)
-  - Jugadores (por nombre, equipo o país)
-  - Eventos (por nombre, país o estado)
-- Los resultados se actualizan mientras escribes
+- Barra de búsqueda en tiempo real
+- Búsqueda simultánea en:
+  - Equipos (nombre/país)
+  - Jugadores (nombre/equipo/país)
+  - Eventos (nombre/estado/región/premios)
+- Actualización instantánea de resultados
+- Destacado visual de coincidencias
+
+### 🔐 Autenticación
+- Login con Google Firebase
+- Persistencia de sesión
+- Interfaz adaptativa según estado de autenticación
+- Perfil de usuario con foto
+
+### ⚡ Rendimiento
+- Caché local de datos (TTL 12h)
+- Carga progresiva con indicador visual
+- Paginación optimizada
+- Precarga inteligente de imágenes
+
+---
+
+## 🎨 Personalización
+
+### 🎯 Diseño Visual
+- Tema oscuro inspirado en Valorant
+- Paleta de colores consistente:
+  - Rojo principal: #ff4655
+  - Fondos oscuros: #1f2326
+  - Acentos claros: #ece8e1
+- Tipografía moderna y legible
+- Iconografía de Bootstrap Icons
+
+### 🎮 Elementos UI
+- Cards con efectos hover suaves
+- Modales personalizados con gradientes
+- Botones con estados y transiciones
+- Barras de progreso animadas
+- Headers fijos con transparencia
+
+### 📱 Responsive Design
+- Diseño fluido mobile-first
+- Breakpoints optimizados
+- Menú adaptativo
+- Imágenes responsive
+- Grid system flexible
+
+### 🌈 Efectos Visuales
+- Transiciones suaves entre secciones
+- Animaciones de carga
+- Efectos hover en tarjetas
+- Sombras y elevaciones
+- Indicadores de estado
+
+---
 
 ## 🛠️ Detalles Técnicos
 
@@ -49,9 +110,7 @@ Una aplicación web moderna que proporciona información sobre la escena profesi
   - `/players` - Información de jugadores
   - `/events` - Datos de torneos
 
-## 🎨 Personalización
-Aun no se realizan cambios en los estilos
-
+---
 
 ## 👥 Colaboradores
 Hecho con 💜 por Nutri y Guicho

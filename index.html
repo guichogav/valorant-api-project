@@ -70,6 +70,20 @@
   <div class="container mt-4">
 
     <p id="loading-message" class="text-center text-muted mt-3"></p>
+    <!-- Agregar esto debajo del loading-message -->
+    <div id="loading-progress-container" class="d-none">
+      <div class="progress" style="height: 10px; max-width: 500px; margin: 0 auto;">
+        <div id="loading-progress-bar" 
+             class="progress-bar progress-bar-striped progress-bar-animated bg-danger" 
+             role="progressbar" 
+             style="width: 0%" 
+             aria-valuenow="0" 
+             aria-valuemin="0" 
+             aria-valuemax="100">
+        </div>
+      </div>
+      <p id="loading-percentage" class="text-center text-muted small mt-2">0%</p>
+    </div>
 
     <!-- SECCIÓN EQUIPOS -->
     <section id="section-teams" class="mb-5">

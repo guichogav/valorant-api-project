@@ -564,12 +564,25 @@ async function fetchAllPages(baseUrl) {
 
 // Precarga con almacenamiento local (cache TTL de 12h)
 async function preloadData() {
-  if (!requireAuth()) return; // prevent data preloading for unauthenticated users
+  if (!requireAuth()) return;
   const cacheKey = "valorantDataCache_v2";
   const cacheTTL = 12 * 60 * 60 * 1000;
 
   const loader = document.getElementById("loading-message");
+  const progressContainer = document.getElementById("loading-progress-container");
+  const progressBar = document.getElementById("loading-progress-bar");
+  const progressText = document.getElementById("loading-percentage");
+
+  function updateProgress(percent) {
+    if (progressBar && progressText) {
+      progressBar.style.width = `${percent}%`;
+      progressBar.setAttribute('aria-valuenow', percent);
+      progressText.textContent = `${percent}%`;
+    }
+  }
+
   if (loader) loader.innerText = "Precargando datos, por favor espera...";
+  if (progressContainer) progressContainer.classList.remove('d-none');
 
   try {
     const cached = JSON.parse(localStorage.getItem(cacheKey));
@@ -577,55 +590,64 @@ async function preloadData() {
 
     if (cached && now - cached.timestamp < cacheTTL) {
       console.log("Cargando datos desde caché local...");
+      updateProgress(50);
       allTeams = cached.teams || [];
       allPlayers = cached.players || [];
-
-      // Rehacemos fetch de eventos siempre (para no depender del cache que estaba vacío)
+      
+      updateProgress(75);
       const eventsRes = await fetch(eventsUrl, options);
       const eventsJson = await eventsRes.json();
       allEvents = (eventsJson?.status === "OK" && Array.isArray(eventsJson.data)) ? eventsJson.data : [];
-
-      if (loader) loader.innerText = "";
+      
+      updateProgress(100);
       console.log(`CARGADO DE CACHE -> teams:${allTeams.length} players:${allPlayers.length} events:${allEvents.length}`);
-      return;
+      
+    } else {
+      console.log("Descargando datos desde la API...");
+      updateProgress(25);
+
+      const teams = await fetchAllPages(teamsUrl);
+      updateProgress(50);
+      
+      const players = await fetchAllPages(playersUrl);
+      updateProgress(75);
+
+      const eventsRes = await fetch(eventsUrl, options);
+      const eventsJson = await eventsRes.json();
+      const events = (eventsJson?.status === "OK" && Array.isArray(eventsJson.data)) ? eventsJson.data : [];
+      
+      allTeams = teams || [];
+      allPlayers = players || [];
+      allEvents = events || [];
+
+      updateProgress(90);
+
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({
+          timestamp: now,
+          teams: allTeams,
+          players: allPlayers,
+          events: allEvents,
+        })
+      );
+
+      updateProgress(100);
+
+      console.log(`Precarga completada:
+        Equipos: ${allTeams.length}
+        Jugadores: ${allPlayers.length}
+        Eventos: ${allEvents.length}`);
     }
-
-    console.log("Descargando datos desde la API...");
-
-    const [teams, players] = await Promise.all([
-      fetchAllPages(teamsUrl),
-      fetchAllPages(playersUrl),
-    ]);
-
-    // Obtener eventos sin paginación
-    const eventsRes = await fetch(eventsUrl, options);
-    const eventsJson = await eventsRes.json();
-    const events = (eventsJson?.status === "OK" && Array.isArray(eventsJson.data)) ? eventsJson.data : [];
-
-    allTeams = teams || [];
-    allPlayers = players || [];
-    allEvents = events || [];
-
-    // Guardar todo en cache
-    localStorage.setItem(
-      cacheKey,
-      JSON.stringify({
-        timestamp: now,
-        teams: allTeams,
-        players: allPlayers,
-        events: allEvents,
-      })
-    );
-
-    console.log(`Precarga completada:
-      Equipos: ${allTeams.length}
-      Jugadores: ${allPlayers.length}
-      Eventos: ${allEvents.length}`);
 
   } catch (error) {
     console.error("Error al precargar datos:", error);
   } finally {
-    if (loader) loader.innerText = "";
+    // Esperar un momento antes de ocultar la barra de progreso
+    setTimeout(() => {
+      if (loader) loader.innerText = "";
+      if (progressContainer) progressContainer.classList.add('d-none');
+    }, 500);
   }
 }
 
