@@ -228,24 +228,13 @@ async function loadPlayers(page = 1) {
     if (data?.status === "OK" && Array.isArray(data.data)) {
       playersContainer.innerHTML = "";
 
-      data.data.forEach(async player => {
-
-        // Placeholder inicial mientras llega la foto real
-        const playerImgPlaceholder = "https://via.placeholder.com/100?text=VLR";
-
-        // Crear contenedor de la tarjeta
+      data.data.forEach(player => {
         const card = document.createElement('div');
         card.className = 'col-md-2 mb-4';
 
-        // Estructura inicial de la tarjeta
         card.innerHTML = `
           <div class="card h-100 text-center shadow-sm border-0 p-3">
-            <img id="player-img-${player.id}"
-                 src="${playerImgPlaceholder}"
-                 alt="${player.name}"
-                 class="rounded-circle mb-2 align-self-center shadow-sm"
-                 width="80" height="80">
-            <div class="card-body pt-0">
+            <div class="card-body">
               <h5 class="card-title">${player.name}</h5>
               <p class="card-text">
                 <strong>Tag:</strong> ${player.teamTag || 'N/A'}<br>
@@ -259,18 +248,6 @@ async function loadPlayers(page = 1) {
         `;
 
         playersContainer.appendChild(card);
-
-        try {
-          const res = await fetch(playerInfoUrl(player.id), options);
-          const playerDetail = await res.json();
-          const realImg = playerDetail.data?.info?.img;
-
-          if (realImg) {
-            document.getElementById(`player-img-${player.id}`).src = realImg;
-          }
-        } catch (err) {
-          console.warn(`No se pudo cargar imagen del jugador ${player.name}`, err);
-        }
       });
 
       renderPlayerPagination(data.pagination);
@@ -284,6 +261,7 @@ async function loadPlayers(page = 1) {
     playersContainer.innerHTML = '<p class="text-center text-danger">Error al obtener los jugadores.</p>';
   }
 }
+
 
 // Mostrar Detalle del Jugador
 async function showPlayerInfo(playerId) {
